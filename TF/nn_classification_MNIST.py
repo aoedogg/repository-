@@ -56,3 +56,21 @@ history2 = model2.fit(X_train_scaled, y_train, epochs=10,
                     validation_data=(X_valid_scaled, y_valid))
 
 print(model2.evaluate(X_test_scaled, y_test))
+
+# Training deep NN on example
+model3 = keras.models.Sequential()
+model3.add(keras.layers.Flatten(input_shape=[28, 28]))
+for _ in range(20):
+    model3.add(keras.layers.Dense(100))
+    model3.add(keras.layers.BatchNormalization())
+    model3.add(keras.layers.Activation("relu"))
+    #model3.add(keras.layers.Dropout(rate = 0.5))
+
+model3.add(keras.layers.Dense(10, activation="softmax"))
+model3.compile(loss="sparse_categorical_crossentropy", optimizer=keras.optimizers.SGD(1e-3),
+              metrics=["accuracy"])
+history3 = model3.fit(X_train_scaled, y_train, epochs=20,
+                    validation_data=(X_valid_scaled, y_valid))
+
+
+print(model3.evaluate(X_test_scaled, y_test))
