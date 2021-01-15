@@ -21,6 +21,8 @@ plt.imshow(X_train[0], cmap="binary")
 plt.text(0.5, 0.5, y_train[0])
 plt.show()
 
+print(X_train.shape)
+
 model = keras.models.Sequential()
 model.add(keras.layers.Flatten(input_shape=[28, 28]))
 model.add(keras.layers.Dense(300, activation="relu"))
@@ -33,8 +35,10 @@ model.compile(loss="sparse_categorical_crossentropy",
               optimizer=keras.optimizers.SGD(lr=1e-3),
               metrics=["accuracy"])
 
-history = model.fit(X_train, y_train, epochs=10,
+history = model.fit(X_train, y_train, epochs=1,
                     validation_data=(X_valid, y_valid))
+
+print(X_train.shape)
 
 print(model.evaluate(X_test, y_test))
 
@@ -57,7 +61,7 @@ history2 = model2.fit(X_train_scaled, y_train, epochs=10,
 
 print(model2.evaluate(X_test_scaled, y_test))
 
-# Training deep NN on example
+# Training deep NN on example - ReLu activation
 model3 = keras.models.Sequential()
 model3.add(keras.layers.Flatten(input_shape=[28, 28]))
 for _ in range(20):
@@ -67,10 +71,53 @@ for _ in range(20):
     #model3.add(keras.layers.Dropout(rate = 0.5))
 
 model3.add(keras.layers.Dense(10, activation="softmax"))
-model3.compile(loss="sparse_categorical_crossentropy", optimizer=keras.optimizers.SGD(1e-3),
-              metrics=["accuracy"])
-history3 = model3.fit(X_train_scaled, y_train, epochs=20,
+model3_train = False
+
+if model3_train:
+    model3.compile(loss="sparse_categorical_crossentropy", optimizer=keras.optimizers.SGD(1e-3),metrics=["accuracy"])
+    history3 = model3.fit(X_train_scaled, y_train, epochs=20,
                     validation_data=(X_valid_scaled, y_valid))
 
+    print(model3.evaluate(X_test_scaled, y_test))
 
-print(model3.evaluate(X_test_scaled, y_test))
+# Define function to build model
+def build_model(n_hidden=20, n_neurons=100, learning_rate=1e-3):
+    model3 = keras.models.Sequential()
+    model3.add(keras.layers.Flatten(input_shape=[28, 28]))
+    for _ in range(n_hidden + 1):
+        model3.add(keras.layers.Dense(n_neurons))
+        model3.add(keras.layers.BatchNormalization())
+        model3.add(keras.layers.Activation("relu"))
+
+    model3.add(keras.layers.Dense(10, activation="softmax"))
+
+    model3.compile(loss="sparse_categorical_crossentropy", optimizer=keras.optimizers.SGD(learning_rate), metrics=["accuracy"])
+    return model3
+
+keras_reg = keras.wrappers.scikit_learn.KerasRegressor(build_model)
+
+#keras_reg.fit(X_train_scaled, y_train, epochs=20,
+#              validation_data=(X_valid_scaled, y_valid),
+#              callbacks=[keras.callbacks.EarlyStopping(patience=10)])
+
+#keras_reg.predict(X_test_scaled)
+
+from scipy.stats import reciprocal
+
+param_distribs = {
+    "n_hidden": [0, 1, 2, 3],
+    "n_neurons": np.arange(1, 100).tolist(),
+    "learning_rate": reciprocal(3e-4, 3e-2).rvs(1000).tolist(),
+}
+
+from sklearn.model_selection import RandomizedSearchCV
+
+rnd_search_cv = RandomizedSearchCV(keras_reg, param_distribs, n_iter=2, cv=3, verbose=2)
+
+rnd_search_cv.fit(X_train_scaled, y_train, epochs=2,
+                  validation_data=(X_valid_scaled, y_valid),
+                  callbacks=[keras.callbacks.EarlyStopping(patience=10)])
+
+model = rnd_search_cv.best_estimator_.model
+print(model.evaluate(X_test_scaled, y_test))
+
