@@ -8,7 +8,9 @@ from tensorflow import keras  # tf.keras
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import recall_score
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.decomposition import PCA
+from imblearn.over_sampling import BorderlineSMOTE
 import sys
 
 # Our top priority in this business problem is to identify customers who are getting churned.
@@ -17,24 +19,31 @@ import sys
 data = pd.read_csv('BankChurners.csv')
 data.drop(columns=['Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_1','Naive_Bayes_Classifier_Attrition_Flag_Card_Category_Contacts_Count_12_mon_Dependent_count_Education_Level_Months_Inactive_12_mon_2'], inplace = True)
 data.drop(columns=['CLIENTNUM'], inplace = True)
-#print(data.isna())
+
 print(data.shape)
+# One hot encoding for multi-category features
+Education_Level_ohe = pd.get_dummies(data['Education_Level'], prefix='Education')
+data.join(Education_Level_ohe)
+Income_Category_ohe = pd.get_dummies(data['Income_Category'], prefix='Income')
+data.join(Income_Category_ohe)
+Card_Category_ohe = pd.get_dummies(data['Card_Category'], prefix='Card_Category')
+data.join(Card_Category_ohe)
+Marital_Status_ohe = pd.get_dummies(data['Marital_Status'], prefix='Marital_Status')
+data.join(Marital_Status_ohe)
+data.drop(columns=['Education_Level','Income_Category','Card_Category', 'Marital_Status'], inplace = True)
+
+# Here  binary categorical variables are converted into ints.
+cat_ints = ['Attrition_Flag', 'Gender']
+for columns in cat_ints:
+    data[columns] = pd.Categorical(data[columns])
+    data[columns] = data[columns].cat.codes
+
 print(data.columns)
-print(data.describe())
-print(data['Attrition_Flag'].head(100))
-
-# Here categorical variables are converted into ints.
-for columns in data:
-    if data[columns].dtype.name == 'object':
-        data[columns] = pd.Categorical(data[columns])
-        data[columns] = data[columns].cat.codes
-
+print(data.head(100))
 
 # Split into X, y
 X = data.drop(columns=['Attrition_Flag'])
 y = data['Attrition_Flag']
-print(y.head(100))
-
 
 #Split data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)

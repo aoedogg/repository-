@@ -96,9 +96,9 @@ def build_model(n_hidden=20, n_neurons=100, learning_rate=1e-3):
 
 keras_reg = keras.wrappers.scikit_learn.KerasRegressor(build_model)
 
-#keras_reg.fit(X_train_scaled, y_train, epochs=20,
-#              validation_data=(X_valid_scaled, y_valid),
-#              callbacks=[keras.callbacks.EarlyStopping(patience=10)])
+keras_reg.fit(X_train_scaled, y_train, epochs=20,
+              validation_data=(X_valid_scaled, y_valid),
+              callbacks=[keras.callbacks.EarlyStopping(patience=10)])
 
 #keras_reg.predict(X_test_scaled)
 
